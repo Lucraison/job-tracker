@@ -91,7 +91,7 @@ export default function Dashboard({ onLogout, theme, toggleTheme }) {
   }
 
   function handleApply(job) {
-    setEditing({ url: job.url });
+    setEditing({ url: job.url, _savedJobId: job.id });
     setShowForm(true);
     setTab('applications');
   }
@@ -315,7 +315,7 @@ export default function Dashboard({ onLogout, theme, toggleTheme }) {
         <ApplicationForm
           initial={editing}
           theme={theme}
-          onSave={() => { setShowForm(false); setEditing(null); notify(editing?.id ? 'Application updated' : 'Application added'); load(); }}
+          onSave={async () => { setShowForm(false); if (editing?._savedJobId) { await deleteSavedJob(editing._savedJobId).catch(() => {}); } setEditing(null); notify(editing?.id ? 'Application updated' : 'Application added'); load(); }}
           onCancel={() => { setShowForm(false); setEditing(null); }}
         />
       )}

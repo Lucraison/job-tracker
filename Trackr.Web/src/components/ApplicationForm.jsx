@@ -10,6 +10,7 @@ export default function ApplicationForm({ initial, onSave, onCancel }) {
     notes: initial?.notes ?? '',
   });
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   function set(field, value) {
     setForm(f => ({ ...f, [field]: value }));
@@ -18,12 +19,15 @@ export default function ApplicationForm({ initial, onSave, onCancel }) {
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+    setSaving(true);
     try {
       if (initial?.id) await updateApplication(initial.id, form);
       else await createApplication(form);
       onSave();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -45,7 +49,7 @@ export default function ApplicationForm({ initial, onSave, onCancel }) {
           {error && <p style={styles.error}>{error}</p>}
           <div style={styles.actions}>
             <button type="button" style={styles.cancelBtn} onClick={onCancel}>Cancel</button>
-            <button type="submit" style={styles.saveBtn}>{initial ? 'Save Changes' : 'Add'}</button>
+            <button type="submit" disabled={saving} style={{ ...styles.saveBtn, opacity: saving ? 0.7 : 1 }}>{saving ? '...' : initial?.id ? 'Save Changes' : 'Add'}</button>
           </div>
         </form>
       </div>

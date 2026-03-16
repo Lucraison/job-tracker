@@ -6,16 +6,20 @@ export default function Login({ onLogin }) {
   const [password, setPassword] = useState('');
   const [isRegister, setIsRegister] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+    setLoading(true);
     try {
       if (isRegister) await register(username, password);
       else await login(username, password);
       onLogin();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -40,10 +44,11 @@ export default function Login({ onLogin }) {
             value={password}
             onChange={e => setPassword(e.target.value)}
             required
+            minLength={isRegister ? 6 : undefined}
           />
           {error && <p style={styles.error}>{error}</p>}
-          <button style={styles.button} type="submit">
-            {isRegister ? 'Register' : 'Login'}
+          <button style={{ ...styles.button, opacity: loading ? 0.7 : 1 }} type="submit" disabled={loading}>
+            {loading ? '...' : isRegister ? 'Register' : 'Login'}
           </button>
         </form>
         <button style={styles.toggle} onClick={() => setIsRegister(v => !v)}>
