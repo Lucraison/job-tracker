@@ -1,0 +1,6 @@
+@Trackr.API_HostAddress = http://localhost:5262
+
+GET {{Trackr.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
