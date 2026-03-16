@@ -38,14 +38,19 @@ async function fetchWithRefresh(url, options = {}) {
   return res;
 }
 
+async function parseResponse(res) {
+  const text = await res.text();
+  try { return JSON.parse(text); } catch { return text; }
+}
+
 export async function register(username, password) {
   const res = await fetch(`${BASE}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.title ?? 'Registration failed');
+  const data = await parseResponse(res);
+  if (!res.ok) throw new Error(typeof data === 'string' ? data : (data.title ?? 'Registration failed'));
   localStorage.setItem('token', data.token);
   localStorage.setItem('refreshToken', data.refreshToken);
 }
@@ -56,8 +61,8 @@ export async function login(username, password) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data ?? 'Login failed');
+  const data = await parseResponse(res);
+  if (!res.ok) throw new Error(typeof data === 'string' ? data : 'Login failed');
   localStorage.setItem('token', data.token);
   localStorage.setItem('refreshToken', data.refreshToken);
 }
