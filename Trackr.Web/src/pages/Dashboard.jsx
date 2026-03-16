@@ -3,6 +3,7 @@ import { getApplications, getStats, deleteApplication, patchStatus, logout, expo
 import ApplicationForm from '../components/ApplicationForm';
 import Toast from '../components/Toast';
 import ConfirmModal from '../components/ConfirmModal';
+import ChangePasswordModal from '../components/ChangePasswordModal';
 
 const STATUS_COLORS = {
   applied: '#4f8ef7',
@@ -24,20 +25,28 @@ export default function Dashboard({ onLogout, theme, toggleTheme }) {
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState('appliedAt');
   const [dir, setDir] = useState('desc');
+  const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [toast, setToast] = useState(null);
   const [confirm, setConfirm] = useState(null);
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
   function notify(message, type = 'success') { setToast({ message, type }); }
 
   const load = useCallback(async () => {
-    const [apps, s] = await Promise.all([
-      getApplications({ status: statusFilter, search, sort, dir, page, pageSize: 10 }),
-      getStats(),
-    ]);
-    setData(apps);
-    setStats(s);
+    setLoading(true);
+    try {
+      const [apps, s] = await Promise.all([
+        getApplications({ status: statusFilter, search, sort, dir, page, pageSize: 10 }),
+        getStats(),
+      ]);
+      setData(apps);
+      setStats(s);
+    } finally {
+      setLoading(false);
+    }
   }, [statusFilter, search, sort, dir, page]);
 
   useEffect(() => { load(); }, [load]);
@@ -72,16 +81,21 @@ export default function Dashboard({ onLogout, theme, toggleTheme }) {
   }
 
   async function handleExport() {
-    const token = localStorage.getItem('token');
-    const res = await fetch(exportCsvUrl(), { headers: { Authorization: `Bearer ${token}` } });
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'applications.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-    notify('CSV exported');
+    setExporting(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(exportCsvUrl(), { headers: { Authorization: `Bearer ${token}` } });
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'applications.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+      notify('CSV exported');
+    } finally {
+      setExporting(false);
+    }
   }
 
   return (
@@ -90,7 +104,8 @@ export default function Dashboard({ onLogout, theme, toggleTheme }) {
         <h1 style={t.title}>Trackr</h1>
         <div style={t.headerRight}>
           <button style={t.iconBtn} onClick={toggleTheme}>{dark ? '☀️' : '🌙'}</button>
-          <button style={t.secondaryBtn} onClick={handleExport}>Export CSV</button>
+          <button style={t.secondaryBtn} onClick={handleExport} disabled={exporting}>{exporting ? 'Exporting...' : 'Export CSV'}</button>
+          <button style={t.secondaryBtn} onClick={() => setShowChangePassword(true)}>Change Password</button>
           <button style={t.addBtn} onClick={() => { setEditing(null); setShowForm(true); }}>+ Add</button>
           <button style={t.logoutBtn} onClick={() => { logout(); onLogout(); }}>Logout</button>
         </div>
@@ -142,7 +157,7 @@ export default function Dashboard({ onLogout, theme, toggleTheme }) {
             <th style={t.th}></th>
           </tr>
         </thead>
-        <tbody>
+        <tbody style={{ opacity: loading ? 0.4 : 1, transition: 'opacity 0.15s' }}>
           {data.items.map(app => (
             <tr key={app.id} style={t.tr}>
               <td style={t.td}>{app.company}</td>
@@ -187,6 +202,13 @@ export default function Dashboard({ onLogout, theme, toggleTheme }) {
 
       {confirm && <ConfirmModal message={confirm.message} onConfirm={confirm.onConfirm} onCancel={() => setConfirm(null)} />}
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      {showChangePassword && (
+        <ChangePasswordModal
+          theme={theme}
+          onClose={() => setShowChangePassword(false)}
+          onSuccess={() => { setShowChangePassword(false); notify('Password updated'); }}
+        />
+      )}
     </div>
   );
 }

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find c:/Users/nicol/Documents/Projetos/Trackr -maxdepth 3 -type d -not -path */bin/* -not -path */obj/* -not -path */node_modules/*)",
+      "Bash(xargs wc:*)"
+    ]
+  }
+}
