@@ -53,7 +53,17 @@ builder.Services.AddSwaggerGen(opt =>
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
-    scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.Migrate();
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+    db.Database.ExecuteSqlRaw(@"
+        DO $$ BEGIN
+            IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='Users' AND column_name='Email') THEN
+                ALTER TABLE ""Users"" RENAME COLUMN ""Email"" TO ""Username"";
+            END IF;
+        END $$;
+    ");
+}
 
 app.UseCors();
 
