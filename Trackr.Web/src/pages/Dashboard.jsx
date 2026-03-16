@@ -232,7 +232,7 @@ export default function Dashboard({ onLogout, theme, toggleTheme }) {
             <div
               key={key}
               style={{ ...t.statCard, cursor: key === 'total' ? 'default' : 'pointer', outline: statusFilter === key ? `2px solid ${STATUS_COLORS[key] ?? '#4f8ef7'}` : 'none' }}
-              onClick={() => key !== 'total' && setStatusFilter(f => f === key ? '' : key)}
+              onClick={() => key === 'total' ? setStatusFilter('') : setStatusFilter(f => f === key ? '' : key)}
             >
               <span style={{ ...t.statNum, color: STATUS_COLORS[key] ?? (dark ? '#fff' : '#111') }}>{val}</span>
               <span style={t.statLabel}>{key}</span>
