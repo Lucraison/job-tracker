@@ -55,10 +55,10 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
     scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.Migrate();
 
+app.UseCors();
+
 app.UseSwagger();
 app.UseSwaggerUI();
-
-app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
