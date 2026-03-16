@@ -1,6 +1,15 @@
 import { useState } from 'react';
 import { changePassword } from '../api';
 
+function parseError(msg) {
+  try {
+    const obj = JSON.parse(msg);
+    if (obj.errors) return Object.values(obj.errors).flat().join(' ');
+    if (obj.title) return obj.title;
+  } catch {}
+  return msg;
+}
+
 export default function ChangePasswordModal({ theme, onClose, onSuccess }) {
   const dark = theme === 'dark';
   const card = dark ? '#1a1a1a' : '#fff';
@@ -42,13 +51,14 @@ export default function ChangePasswordModal({ theme, onClose, onSuccess }) {
           />
           <input
             type="password"
-            placeholder="New password"
+            placeholder="New password (min. 6 characters)"
             value={next}
             onChange={e => setNext(e.target.value)}
             required
+            minLength={6}
             style={{ padding: '0.55rem 0.9rem', borderRadius: '8px', border: `1px solid ${border}`, background: inputBg, color: text, fontSize: '0.9rem' }}
           />
-          {error && <p style={{ color: '#ef4444', fontSize: '0.85rem', margin: 0 }}>{error}</p>}
+          {error && <p style={{ color: '#ef4444', fontSize: '0.85rem', margin: 0 }}>{parseError(error)}</p>}
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
             <button type="button" onClick={onClose} style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: `1px solid ${border}`, background: 'transparent', color: text, cursor: 'pointer' }}>
               Cancel
