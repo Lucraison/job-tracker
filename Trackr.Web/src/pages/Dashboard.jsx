@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { getApplications, getStats, deleteApplication, patchStatus, logout, exportCsvUrl } from '../api';
+import { getApplications, getStats, deleteApplication, patchStatus, logout, exportCsvUrl, getSavedJobs, createSavedJob, deleteSavedJob } from '../api';
 import ApplicationForm from '../components/ApplicationForm';
 import Toast from '../components/Toast';
 import ConfirmModal from '../components/ConfirmModal';
@@ -25,6 +25,7 @@ export default function Dashboard({ onLogout, theme, toggleTheme }) {
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState('appliedAt');
   const [dir, setDir] = useState('desc');
+  const [tab, setTab] = useState('applications');
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -32,6 +33,12 @@ export default function Dashboard({ onLogout, theme, toggleTheme }) {
   const [toast, setToast] = useState(null);
   const [confirm, setConfirm] = useState(null);
   const [showChangePassword, setShowChangePassword] = useState(false);
+
+  const [savedJobs, setSavedJobs] = useState([]);
+  const [loadingSaved, setLoadingSaved] = useState(false);
+  const [newUrl, setNewUrl] = useState('');
+  const [newNote, setNewNote] = useState('');
+  const [savingJob, setSavingJob] = useState(false);
 
   function notify(message, type = 'success') { setToast({ message, type }); }
 
@@ -51,6 +58,43 @@ export default function Dashboard({ onLogout, theme, toggleTheme }) {
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { setPage(1); }, [statusFilter, search, sort, dir]);
+
+  const loadSaved = useCallback(async () => {
+    setLoadingSaved(true);
+    try { setSavedJobs(await getSavedJobs()); }
+    finally { setLoadingSaved(false); }
+  }, []);
+
+  useEffect(() => { if (tab === 'saved') loadSaved(); }, [tab, loadSaved]);
+
+  async function handleSaveJob(e) {
+    e.preventDefault();
+    if (!newUrl.trim()) return;
+    setSavingJob(true);
+    try {
+      await createSavedJob(newUrl.trim(), newNote.trim() || null);
+      setNewUrl('');
+      setNewNote('');
+      loadSaved();
+      notify('Job saved');
+    } catch (err) {
+      notify(err.message, 'error');
+    } finally {
+      setSavingJob(false);
+    }
+  }
+
+  async function handleDeleteSaved(id) {
+    await deleteSavedJob(id);
+    setSavedJobs(j => j.filter(x => x.id !== id));
+    notify('Removed', 'error');
+  }
+
+  function handleApply(job) {
+    setEditing({ url: job.url });
+    setShowForm(true);
+    setTab('applications');
+  }
 
   function handleSort(col) {
     if (sort === col) setDir(d => d === 'desc' ? 'asc' : 'desc');
@@ -111,7 +155,78 @@ export default function Dashboard({ onLogout, theme, toggleTheme }) {
         </div>
       </div>
 
-      {stats && (
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+        {['applications', 'saved'].map(tabName => (
+          <button
+            key={tabName}
+            onClick={() => setTab(tabName)}
+            style={{
+              padding: '0.45rem 1.1rem', borderRadius: '8px', border: `1px solid ${dark ? '#2a2a2a' : '#e0e0e0'}`,
+              background: tab === tabName ? '#4f8ef7' : 'transparent',
+              color: tab === tabName ? '#fff' : (dark ? '#888' : '#666'),
+              fontWeight: tab === tabName ? 600 : 400, cursor: 'pointer', fontSize: '0.9rem', textTransform: 'capitalize'
+            }}
+          >{tabName}</button>
+        ))}
+      </div>
+
+      {tab === 'saved' && (
+        <div>
+          <form onSubmit={handleSaveJob} style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+            <input
+              style={{ ...makeTheme(dark).search, flex: 1, minWidth: '220px' }}
+              placeholder="Paste job URL..."
+              value={newUrl}
+              onChange={e => setNewUrl(e.target.value)}
+              required
+            />
+            <input
+              style={{ ...makeTheme(dark).search, flex: 1, minWidth: '160px' }}
+              placeholder="Note (optional)"
+              value={newNote}
+              onChange={e => setNewNote(e.target.value)}
+            />
+            <button
+              type="submit"
+              disabled={savingJob}
+              style={{ padding: '0.5rem 1.1rem', borderRadius: '8px', border: 'none', background: '#4f8ef7', color: '#fff', fontWeight: 600, cursor: 'pointer', opacity: savingJob ? 0.7 : 1 }}
+            >Save</button>
+          </form>
+
+          {loadingSaved ? (
+            <p style={{ color: '#888', textAlign: 'center' }}>Loading...</p>
+          ) : savedJobs.length === 0 ? (
+            <p style={{ color: '#888', textAlign: 'center', marginTop: '3rem' }}>No saved jobs yet. Paste a URL above to get started.</p>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+              {savedJobs.map(job => (
+                <div key={job.id} style={{ background: dark ? '#1a1a1a' : '#fff', border: `1px solid ${dark ? '#2a2a2a' : '#e0e0e0'}`, borderRadius: '10px', padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <a
+                    href={job.url.startsWith('http') ? job.url : `https://${job.url}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ color: '#4f8ef7', fontSize: '0.9rem', wordBreak: 'break-all', textDecoration: 'none' }}
+                  >{job.url}</a>
+                  {job.note && <p style={{ margin: 0, color: dark ? '#aaa' : '#555', fontSize: '0.85rem' }}>{job.note}</p>}
+                  <p style={{ margin: 0, color: '#666', fontSize: '0.75rem' }}>{new Date(job.savedAt).toLocaleDateString()}</p>
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
+                    <button
+                      onClick={() => handleApply(job)}
+                      style={{ flex: 1, padding: '0.4rem', borderRadius: '7px', border: 'none', background: '#4f8ef7', color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: '0.82rem' }}
+                    >Apply →</button>
+                    <button
+                      onClick={() => handleDeleteSaved(job.id)}
+                      style={{ padding: '0.4rem 0.7rem', borderRadius: '7px', border: '1px solid #3a1a1a', background: 'transparent', color: '#ef4444', cursor: 'pointer', fontSize: '0.82rem' }}
+                    >Remove</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === 'applications' && stats && (
         <div style={t.stats}>
           {Object.entries(stats).map(([key, val]) => (
             <div
@@ -126,6 +241,8 @@ export default function Dashboard({ onLogout, theme, toggleTheme }) {
         </div>
       )}
 
+      {tab === 'applications' && <>
+
       <div style={t.toolbar}>
         <input style={t.search} placeholder="Search company or role..." value={search} onChange={e => setSearch(e.target.value)} />
         {statusFilter && (
@@ -134,15 +251,6 @@ export default function Dashboard({ onLogout, theme, toggleTheme }) {
           </button>
         )}
       </div>
-
-      {showForm && (
-        <ApplicationForm
-          initial={editing}
-          theme={theme}
-          onSave={() => { setShowForm(false); setEditing(null); notify(editing ? 'Application updated' : 'Application added'); load(); }}
-          onCancel={() => { setShowForm(false); setEditing(null); }}
-        />
-      )}
 
       <table style={t.table}>
         <thead>
@@ -199,9 +307,18 @@ export default function Dashboard({ onLogout, theme, toggleTheme }) {
           <button style={t.pageBtn} disabled={page === data.totalPages} onClick={() => setPage(p => p + 1)}>Next →</button>
         </div>
       )}
+      </>}
 
       {confirm && <ConfirmModal message={confirm.message} onConfirm={confirm.onConfirm} onCancel={() => setConfirm(null)} />}
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      {showForm && (
+        <ApplicationForm
+          initial={editing}
+          theme={theme}
+          onSave={() => { setShowForm(false); setEditing(null); notify(editing?.id ? 'Application updated' : 'Application added'); load(); }}
+          onCancel={() => { setShowForm(false); setEditing(null); }}
+        />
+      )}
       {showChangePassword && (
         <ChangePasswordModal
           theme={theme}

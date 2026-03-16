@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { login, register } from '../api';
 
 export default function Login({ onLogin }) {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isRegister, setIsRegister] = useState(false);
   const [error, setError] = useState('');
@@ -11,8 +11,8 @@ export default function Login({ onLogin }) {
     e.preventDefault();
     setError('');
     try {
-      if (isRegister) await register(email, password);
-      else await login(email, password);
+      if (isRegister) await register(username, password);
+      else await login(username, password);
       onLogin();
     } catch (err) {
       setError(err.message);
@@ -27,10 +27,10 @@ export default function Login({ onLogin }) {
         <form onSubmit={handleSubmit} style={styles.form}>
           <input
             style={styles.input}
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
+            type="text"
+            placeholder="Username"
+            value={username}
+            onChange={e => setUsername(e.target.value)}
             required
           />
           <input

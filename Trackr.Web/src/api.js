@@ -38,11 +38,11 @@ async function fetchWithRefresh(url, options = {}) {
   return res;
 }
 
-export async function register(email, password) {
+export async function register(username, password) {
   const res = await fetch(`${BASE}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ username, password }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.title ?? 'Registration failed');
@@ -50,11 +50,11 @@ export async function register(email, password) {
   localStorage.setItem('refreshToken', data.refreshToken);
 }
 
-export async function login(email, password) {
+export async function login(username, password) {
   const res = await fetch(`${BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ username, password }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data ?? 'Login failed');
@@ -144,4 +144,28 @@ export async function deleteApplication(id) {
 
 export function exportCsvUrl() {
   return `${BASE}/applications/export`;
+}
+
+export async function getSavedJobs() {
+  const res = await fetchWithRefresh(`${BASE}/saved-jobs`, { headers: authHeaders() });
+  if (!res.ok) throw new Error('Failed to fetch saved jobs');
+  return res.json();
+}
+
+export async function createSavedJob(url, note) {
+  const res = await fetchWithRefresh(`${BASE}/saved-jobs`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ url, note }),
+  });
+  if (!res.ok) throw new Error('Failed to save job');
+  return res.json();
+}
+
+export async function deleteSavedJob(id) {
+  const res = await fetchWithRefresh(`${BASE}/saved-jobs/${id}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to delete saved job');
 }

@@ -19,12 +19,12 @@ public class AuthController(AppDbContext db, IConfiguration config) : Controller
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] AuthRequest req)
     {
-        if (await db.Users.AnyAsync(u => u.Email == req.Email))
-            return BadRequest("Email already in use.");
+        if (await db.Users.AnyAsync(u => u.Username == req.Username))
+            return BadRequest("Username already taken.");
 
         var user = new User
         {
-            Email = req.Email,
+            Username = req.Username,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password)
         };
 
@@ -37,7 +37,7 @@ public class AuthController(AppDbContext db, IConfiguration config) : Controller
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] AuthRequest req)
     {
-        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == req.Email);
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Username == req.Username);
         if (user == null || !BCrypt.Net.BCrypt.Verify(req.Password, user.PasswordHash))
             return Unauthorized("Invalid credentials.");
 
@@ -99,7 +99,7 @@ public class AuthController(AppDbContext db, IConfiguration config) : Controller
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Secret"]!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         var token = new JwtSecurityToken(
-            claims: [new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()), new Claim(ClaimTypes.Email, user.Email)],
+            claims: [new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()), new Claim(ClaimTypes.Name, user.Username)],
             expires: DateTime.UtcNow.AddMinutes(15),
             signingCredentials: creds
         );
@@ -107,7 +107,7 @@ public class AuthController(AppDbContext db, IConfiguration config) : Controller
     }
 }
 
-public record AuthRequest(string Email, string Password);
+public record AuthRequest(string Username, string Password);
 public record RefreshRequest(string RefreshToken);
 
 public class ChangePasswordRequest

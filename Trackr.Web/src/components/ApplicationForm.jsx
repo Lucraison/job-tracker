@@ -19,7 +19,7 @@ export default function ApplicationForm({ initial, onSave, onCancel }) {
     e.preventDefault();
     setError('');
     try {
-      if (initial) await updateApplication(initial.id, form);
+      if (initial?.id) await updateApplication(initial.id, form);
       else await createApplication(form);
       onSave();
     } catch (err) {
@@ -30,7 +30,7 @@ export default function ApplicationForm({ initial, onSave, onCancel }) {
   return (
     <div style={styles.overlay}>
       <div style={styles.modal}>
-        <h2 style={styles.title}>{initial ? 'Edit Application' : 'Add Application'}</h2>
+        <h2 style={styles.title}>{initial?.id ? 'Edit Application' : 'Add Application'}</h2>
         <form onSubmit={handleSubmit} style={styles.form}>
           <input style={styles.input} placeholder="Company *" value={form.company} onChange={e => set('company', e.target.value)} required />
           <input style={styles.input} placeholder="Role *" value={form.role} onChange={e => set('role', e.target.value)} required />

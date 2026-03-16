@@ -8,4 +8,5 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<User> Users => Set<User>();
     public DbSet<Application> Applications => Set<Application>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<SavedJob> SavedJobs => Set<SavedJob>();
 }
