@@ -1,4 +1,4 @@
-const BASE = 'http://localhost:5262/api';
+const BASE = `${import.meta.env.VITE_API_URL}/api`;
 
 function getToken() { return localStorage.getItem('token'); }
 function getRefreshToken() { return localStorage.getItem('refreshToken'); }
